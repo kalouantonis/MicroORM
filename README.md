@@ -1,5 +1,4 @@
-SQLiteParser
+MicroORM
 -----------
 
-
-Simple ORM for SQLite. 
+Small and Simple ORM for SQLite.

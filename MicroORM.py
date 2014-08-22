@@ -1,10 +1,29 @@
+"""
+Copyright (c) <2014> <Antonis Kalou (kalouantonis@gmail.com)>
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+3. This notice may not be removed or altered from any source distribution.
+
+"""
+
+
 import sqlite3
 
-# Testing
-from pprint import pprint
 
-
-class DBDriver:
+class MicroORM:
 
     def __init__(self, filename, tablename):
         """
@@ -31,7 +50,7 @@ class DBDriver:
             print "Error: Could not make connection to database\nStack: " + str(sqerr)
 
 
-    def CreateTable(self, **kwargs):
+    def create_table(self, **kwargs):
         """
         Creates a table with the tablename provided in the constructor
 
@@ -48,7 +67,7 @@ class DBDriver:
         # Iterate through each key and value in kwargs and add them on
         # to the sql string
         for index, (key, value) in enumerate(zip(kwargs.keys(), kwargs.values())):
-            query_string += key + ' ' + value + self.__append_comma(index, len(kwargs))
+            query_string += key + ' ' + value + self._append_comma(index, len(kwargs))
 
             # Check if the item is the last one, if it is not append
             # a ','
@@ -57,10 +76,10 @@ class DBDriver:
 
         print query_string
 
-        return self.__exec_query(query_string)
+        return self._exec_query(query_string)
 
 
-    def Insert(self, **kwargs):
+    def insert(self, **kwargs):
         """
         Inserts in to the table the given values in to the given columns
 
@@ -80,20 +99,20 @@ class DBDriver:
         for index, (key, value) in enumerate(zip(kwargs.keys(), kwargs.values())):
             query_keys += '`' + key + '`'
 
-            query_vals += self.__check_type(value)
+            query_vals += self._check_type(value)
 
-            query_keys += self.__append_comma(index, len(kwargs))
-            query_vals += self.__append_comma(index, len(kwargs))
+            query_keys += self._append_comma(index, len(kwargs))
+            query_vals += self._append_comma(index, len(kwargs))
 
 
         query_string += query_keys + ") VALUES " + query_vals + ")"
 
         print query_string
 
-        return self.__exec_query(query_string)
+        return self._exec_query(query_string)
 
 
-    def Get(self):
+    def get(self):
         """
         Fetches all data (rows, columns) from the table
 
@@ -106,10 +125,10 @@ class DBDriver:
 
         """
 
-        return self.Select()
+        return self.select()
 
 
-    def GetWhere(self, **where):
+    def get_where(self, **where):
         """
         Selects all columns from given positions in the table
 
@@ -122,9 +141,9 @@ class DBDriver:
 
         """
 
-        return self.Select(**where)
+        return self.select(**where)
 
-    def GetLike(self, *cols ,**like):
+    def get_like(self, *cols ,**like):
         """
         Gets items from the Database that have a similarity to the given like kwargs
 
@@ -135,7 +154,7 @@ class DBDriver:
         :param like: Same as **where in Select, except the LIKE %value% sql query is made
         :return: None or List
         """
-        query_string = self.__gen_select(*cols)
+        query_string = self._gen_select(*cols)
         if len(like) > 0:
             query_string += " WHERE "
 
@@ -147,18 +166,18 @@ class DBDriver:
                 else:
                     query_string += str(value)
 
-                query_string += self.__check_op(index, len(like))
+                query_string += self._check_op(index, len(like))
 
 
         print query_string
 
-        return self.__exec_select(query_string)
+        return self._exec_select(query_string)
 
 
-    def UseOr(self, flag):
+    def use_or(self, flag):
         self.useor = flag
 
-    def Sort(self, col_name, asc=True):
+    def sort(self, col_name, asc=True):
 
         self.sort_str = ' ORDER BY ' + str(col_name)
 
@@ -169,7 +188,7 @@ class DBDriver:
 
 
 
-    def Select(self, *cols, **where):
+    def select(self, *cols, **where):
         """
         Selects specified columns, if not specified, selects all. Uses the
         where arguments to select specific items
@@ -183,21 +202,21 @@ class DBDriver:
 
         """
 
-        query_string = self.__gen_select(*cols)
+        query_string = self._gen_select(*cols)
 
         if len(where) > 0:
             query_string += " WHERE "
 
             for index, (key, value) in enumerate(zip(where.keys(), where.values())):
-                query_string += '`' + key + '`' + " = " + self.__check_type(value) \
-                                + self.__check_op(index, len(where))
+                query_string += '`' + key + '`' + " = " + self._check_type(value) \
+                                + self._check_op(index, len(where))
 
 
         print query_string
 
-        return self.__exec_select(query_string)
+        return self._exec_select(query_string)
 
-    def Update(self, set_dict, **where):
+    def update(self, set_dict, **where):
 
         """
         Calls the SQL UPDATE function according to supplied set arguments and where arguments
@@ -210,23 +229,23 @@ class DBDriver:
         query_string = "UPDATE " + self.tablename + " SET "
 
         for index, (key, value) in enumerate(zip(set_dict.keys(), set_dict.values())):
-            query_string += '`' + key + '`' + " = " + self.__check_type(value) \
-                            + self.__append_comma(index, len(set_dict))
+            query_string += '`' + key + '`' + " = " + self._check_type(value) \
+                            + self._append_comma(index, len(set_dict))
 
 
         query_string += " WHERE "
 
         for index, (key, value) in enumerate(zip(where.keys(), where.values())):
-            query_string += '`' + key + '`' + " = " + self.__check_type(value) \
-                            + self.__check_op(index, len(where))
+            query_string += '`' + key + '`' + " = " + self._check_type(value) \
+                            + self._check_op(index, len(where))
 
 
         print query_string
 
-        return self.__exec_query(query_string)
+        return self._exec_query(query_string)
 
 
-    def Delete(self, **where):
+    def delete(self, **where):
         """
         Deletes an item from the table depending on the supplied where arguments.
 
@@ -239,18 +258,18 @@ class DBDriver:
         query_string = "DELETE FROM " + self.tablename + " WHERE "
 
         for index, (key, value) in enumerate(zip(where.keys(), where.values())):
-            query_string += '`' + key + '`' + " = " + self.__check_type(value) \
-                            + self.__check_op(index, len(where))
+            query_string += '`' + key + '`' + " = " + self._check_type(value) \
+                            + self._check_op(index, len(where))
 
 
         print query_string
 
-        return self.__exec_query(query_string)
+        return self._exec_query(query_string)
 
     # PRIVATE METHODS ###################################
     # Do not use these out
 
-    def __gen_select(self, *cols):
+    def _gen_select(self, *cols):
         """
         Generates the initial part of the select statement, so that the self.Select
         and the self. GetLike methods do not repeat themselves
@@ -268,13 +287,13 @@ class DBDriver:
             query_string += "*"
         else:
             for index, each_col in enumerate(cols):
-                query_string += '`' + each_col + '`' + self.__append_comma(index, len(cols))
+                query_string += '`' + each_col + '`' + self._append_comma(index, len(cols))
 
         query_string += " FROM " + self.tablename
 
         return query_string
 
-    def __exec_select(self, query_string):
+    def _exec_select(self, query_string):
         """
         Execute a select statement from a previously generated statement.
         Will return a list containing each row of data, with a nested dictionary
@@ -313,7 +332,8 @@ class DBDriver:
             return None
 
 
-    def __append_comma(self, index, size):
+    @staticmethod
+    def _append_comma(index, size):
         """
         Checks if the current index is at the location of the last item in the
         dictionary supplied. If it's not, it appends a comma,
@@ -333,13 +353,14 @@ class DBDriver:
         return ''
 
 
-    def __check_op(self, index, size):
+    def _check_op(self, index, size):
         if self.useor:
-            return self.__append_or(index, size)
+            return self._append_or(index, size)
 
-        return self.__append_and(index, size)
+        return self._append_and(index, size)
 
-    def __append_and(self, index, size):
+    @staticmethod
+    def _append_and(index, size):
         """
         Checks if the current index is at the location of the last item in the
         dictionary supplied. If it's not, it appends an AND, as so to correspond
@@ -356,21 +377,22 @@ class DBDriver:
 
         return ''
 
-    def __append_or(self, index, size):
-
+    @staticmethod
+    def _append_or(index, size):
         if index != (size - 1):
             return ' OR '
 
         return ''
 
-    def __check_type(self, value):
+    @staticmethod
+    def _check_type(value):
         if (type(value) is str) or (type(value) is unicode) or (type(value) is chr):
             return "\"" + value + "\""
 
         return str(value)
 
 
-    def __exec_query(self, query_string):
+    def _exec_query(self, query_string):
         try:
             data = self.cursor.execute(query_string)
             self.connection.commit()
@@ -389,7 +411,7 @@ class DBDriver:
         :return: Integer containing the number of Rows in the table
         """
 
-        return len(self.Get())
+        return len(self.get())
 
 
     def __getitem__(self, item):
@@ -399,7 +421,7 @@ class DBDriver:
         :param item: String containing the column name that needs extracting
         :return: List or None
         """
-        return self.Select(item)
+        return self.select(item)
 
 
     def __delitem__(self, key):
@@ -410,7 +432,7 @@ class DBDriver:
         :return: True or False depending if query succeeded
         """
 
-        self.Delete(id=key)
+        self.delete(id=key)
 
     # Destructor #######################
     def __del__(self):
@@ -423,7 +445,7 @@ class DBDriver:
 
 # Testing
 if __name__ == '__main__':
-    db = DBDriver('test.sqlite', 'table2')
+    db = MicroORM('test.sqlite', 'table2')
     #db.CreateTable(id="INTEGER PRIMARY KEY AUTOINCREMENT", task="VARCHAR(100)", desc="TEXT")
     #db.Insert(task="Get Milk", desc="Get some more milk")
     #print db.Insert(task="Get Food", desc="Im soo hungry!")
