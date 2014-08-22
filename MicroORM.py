@@ -25,26 +25,26 @@ import sqlite3
 
 class MicroORM:
 
-    def __init__(self, filename, tablename):
+    def __init__(self, filename, table_name):
         """
         :param filename: expects a string giving the location and name of the
         database file. If it doesnt exist, it will create it
 
-        :param tablename: the tablename that will be processed for the duration of this
+        :param table_name: the table_name that will be processed for the duration of this
         class lifecycle. If it does not exist, the user must take responsibility to
         create it
         """
 
-        self.filename = filename
-        self.tablename = tablename
+        self._filename = filename
+        self._table_name = table_name
 
-        self.useor = None
-        self.sort_str = None
+        self._use_or = None
+        self._sort_str = None
 
         self.OperationalError = sqlite3.OperationalError
 
         try:
-            self.connection = sqlite3.connect(self.filename)
+            self.connection = sqlite3.connect(self._filename)
             self.cursor = self.connection.cursor()
         except sqlite3.IntegrityError as sqerr:
             print "Error: Could not make connection to database\nStack: " + str(sqerr)
@@ -52,17 +52,17 @@ class MicroORM:
 
     def create_table(self, **kwargs):
         """
-        Creates a table with the tablename provided in the constructor
+        Creates a table with the table_name provided in the constructor
 
         CreateTable(self, col_name=attributes) --> Bool
 
         E.g. db.CreateTable(id="PRIMARY KEY AUTOINCREMENT") will result in SQL
-        ---> CREATE TABLE tablename ( id PRIMARY KEY AUTOINCREMENT )
+        ---> CREATE TABLE table_name ( id PRIMARY KEY AUTOINCREMENT )
 
         :return: True if query succeeded or false if failed
 
         """
-        query_string = "CREATE TABLE " + self.tablename + "(\n"
+        query_string = "CREATE TABLE " + self._table_name + "(\n"
 
         # Iterate through each key and value in kwargs and add them on
         # to the sql string
@@ -86,13 +86,13 @@ class MicroORM:
         Insert(self, col_name=insert_val) --> Bool
 
         E.g. db.Insert(name="John Smith") will result to
-        ---> INSERT INTO tablename (`name`) VALUES ("John Smith")
+        ---> INSERT INTO table_name (`name`) VALUES ("John Smith")
 
         :return: True if query succeeded or false if failed
 
         """
 
-        query_string = "INSERT INTO " + self.tablename
+        query_string = "INSERT INTO " + self._table_name
         query_keys = "("
         query_vals = "("
 
@@ -121,7 +121,7 @@ class MicroORM:
         :return: List of all items in DB or None if query failed
 
         :example: db.Get() corresponds to this SQL
-        ---> SELECT * FROM tablename
+        ---> SELECT * FROM table_name
 
         """
 
@@ -137,7 +137,7 @@ class MicroORM:
         :return: List of items in query or None if query failed
 
         :example: db.GetWhere(id=5, task="Get Milk") corresponds to this SQL
-        ---> SELECT * FROM tablename WHERE `id` = 5 AND `task` = "Get Milk"
+        ---> SELECT * FROM table_name WHERE `id` = 5 AND `task` = "Get Milk"
 
         """
 
@@ -148,7 +148,7 @@ class MicroORM:
         Gets items from the Database that have a similarity to the given like kwargs
 
         :example: db.GetLike('id', task="Get") Corresponds to this SQL
-        ---> SELECT `id` FROM tablename WHERE `task` LIKE "%Get%"
+        ---> SELECT `id` FROM table_name WHERE `task` LIKE "%Get%"
 
         :param cols: The columns that are required
         :param like: Same as **where in Select, except the LIKE %value% sql query is made
@@ -175,16 +175,16 @@ class MicroORM:
 
 
     def use_or(self, flag):
-        self.useor = flag
+        self._use_or = flag
 
     def sort(self, col_name, asc=True):
 
-        self.sort_str = ' ORDER BY ' + str(col_name)
+        self._sort_str = ' ORDER BY ' + str(col_name)
 
         if asc:
-            self.sort_str += ' ASC'
+            self._sort_str += ' ASC'
         else:
-            self.sort_str += ' DESC'
+            self._sort_str += ' DESC'
 
 
 
@@ -196,7 +196,7 @@ class MicroORM:
         Select(self, col1, col2, id=id_num, name="Some name") --> list or False
 
         E.g. Select('task', id=3) results to
-        ---> SELECT `task` FROM tablename WHERE `id`=3
+        ---> SELECT `task` FROM table_name WHERE `id`=3
 
         :return: None if query failed or a list of items if query succeeded
 
@@ -226,7 +226,7 @@ class MicroORM:
         :param where:  values corresponding to SQL WHERE --> WHERE KEY1=VAL1
         :return: returns true if query successful or false if failed
         """
-        query_string = "UPDATE " + self.tablename + " SET "
+        query_string = "UPDATE " + self._table_name + " SET "
 
         for index, (key, value) in enumerate(zip(set_dict.keys(), set_dict.values())):
             query_string += '`' + key + '`' + " = " + self._check_type(value) \
@@ -249,13 +249,13 @@ class MicroORM:
         """
         Deletes an item from the table depending on the supplied where arguments.
 
-        :example: Delete(id=4) --> DELETE FROM tablename WHRE `id` = 4
+        :example: Delete(id=4) --> DELETE FROM table_name WHERE `id` = 4
 
         :param where: corresponds to values in the WHERE function. For example,
         key1=val1
         :return: returns True if query succeeded or false if failed
         """
-        query_string = "DELETE FROM " + self.tablename + " WHERE "
+        query_string = "DELETE FROM " + self._table_name + " WHERE "
 
         for index, (key, value) in enumerate(zip(where.keys(), where.values())):
             query_string += '`' + key + '`' + " = " + self._check_type(value) \
@@ -275,7 +275,7 @@ class MicroORM:
         and the self. GetLike methods do not repeat themselves
 
         :example: self._gen_select('id', 'task') Corresponds to this SQL
-        --> SELECT `id`, `task` FROM tablename
+        --> SELECT `id`, `task` FROM table_name
 
         :param cols: The columns that want to be queried
         :return: String containing the generated select statement
@@ -289,7 +289,7 @@ class MicroORM:
             for index, each_col in enumerate(cols):
                 query_string += '`' + each_col + '`' + self._append_comma(index, len(cols))
 
-        query_string += " FROM " + self.tablename
+        query_string += " FROM " + self._table_name
 
         return query_string
 
@@ -305,7 +305,7 @@ class MicroORM:
         """
 
         try:
-            query_string += str(self.sort_str)
+            query_string += str(self._sort_str)
 
             results = self.cursor.execute(query_string)
 
@@ -354,7 +354,7 @@ class MicroORM:
 
 
     def _check_op(self, index, size):
-        if self.useor:
+        if self._use_or:
             return self._append_or(index, size)
 
         return self._append_and(index, size)
@@ -367,7 +367,7 @@ class MicroORM:
         to SQL syntax
 
 
-        :param index: an integer value of the position the iterator is through the dictiorary
+        :param index: an integer value of the position the iterator is through the dictionary
         :param size: the size of the dictionary or kwargs or list
         :return: string, either an ' AND ' or an empty string
         """
